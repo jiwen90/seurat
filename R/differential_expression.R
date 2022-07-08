@@ -115,54 +115,56 @@ FindAllMarkersParallel <- function(
       }
       message <- NULL
       genes_de <- tryCatch(
-      expr = {
-        FindMarkers(
-          object = object,
-          assay = assay,
-          ident.1 = if (is.null(x = node)) {
-            idents.all[i]
-          } else {
-            tree
-          },
-          ident.2 = if (is.null(x = node)) {
-            NULL
-          } else {
-            idents.all[i]
-          },
-          features = features,
-          logfc.threshold = logfc.threshold,
-          test.use = test.use,
-          slot = slot,
-          min.pct = min.pct,
-          min.diff.pct = min.diff.pct,
-          verbose = verbose,
-          only.pos = only.pos,
-          max.cells.per.ident = max.cells.per.ident,
-          random.seed = random.seed,
-          latent.vars = latent.vars,
-          min.cells.feature = min.cells.feature,
-          min.cells.group = min.cells.group,
-          pseudocount.use = pseudocount.use,
-          mean.fxn = mean.fxn,
-          fc.name = fc.name,
-          base = base,
-          densify = densify,
-          ...
-        )
-      },
-      error = function(cond) {
-        return(cond$message)
+        expr = {
+          FindMarkers(
+            object = object,
+            assay = assay,
+            ident.1 = if (is.null(x = node)) {
+              idents.all[i]
+            } else {
+              tree
+            },
+            ident.2 = if (is.null(x = node)) {
+              NULL
+            } else {
+              idents.all[i]
+            },
+            features = features,
+            logfc.threshold = logfc.threshold,
+            test.use = test.use,
+            slot = slot,
+            min.pct = min.pct,
+            min.diff.pct = min.diff.pct,
+            verbose = verbose,
+            only.pos = only.pos,
+            max.cells.per.ident = max.cells.per.ident,
+            random.seed = random.seed,
+            latent.vars = latent.vars,
+            min.cells.feature = min.cells.feature,
+            min.cells.group = min.cells.group,
+            pseudocount.use = pseudocount.use,
+            mean.fxn = mean.fxn,
+            fc.name = fc.name,
+            base = base,
+            densify = densify,
+            ...
+          )
+        },
+        error = function(cond) {
+          return(cond$message)
+        }
+      )
+      if (is.character(x = genes_de)) {
+        message <- genes_de
+        genes_de <- NULL
       }
-    )
-    if (is.character(x = genes_de)) {
-      message <- genes_de
-      genes_de <- NULL
+
+      list(genes_de, message)
     }
 
-    list(genes_de, message)
+    stopCluster(cluster)
+  
   }
-
-  stopCluster(cluster)
 
   genes.de <- result[[1]]
   messages <- result[[2]]
