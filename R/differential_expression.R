@@ -11,6 +11,242 @@ globalVariables(
   package = 'Seurat',
   add = TRUE
 )
+
+
+
+
+#' Gene expression markers for all identity classes
+#'
+#' Finds markers (differentially expressed genes) for each of the identity classes in a dataset
+#'
+#' @inheritParams FindAllMarkers
+#' @param node A node to find markers for and all its children; requires
+#' \code{\link{BuildClusterTree}} to have been run previously; replaces \code{FindAllMarkersNode}
+#' @param return.thresh Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)
+#'
+#' @return Matrix containing a ranked list of putative markers, and associated
+#' statistics (p-values, ROC score, etc.)
+#'
+#' @importFrom stats setNames
+#'
+#' @export
+#'
+#' @concept differential_expression
+#'
+#' @examples
+#' data("pbmc_small")
+#' # Find markers for all clusters
+#' all.markers <- FindAllMarkersParallel(object = pbmc_small)
+#' head(x = all.markers)
+#'
+FindAllMarkersParallel <- function(
+  object,
+  assay = NULL,
+  features = NULL,
+  logfc.threshold = 0.25,
+  test.use = 'wilcox',
+  slot = 'data',
+  min.pct = 0.1,
+  min.diff.pct = -Inf,
+  node = NULL,
+  verbose = TRUE,
+  only.pos = FALSE,
+  max.cells.per.ident = Inf,
+  random.seed = 1,
+  latent.vars = NULL,
+  min.cells.feature = 3,
+  min.cells.group = 3,
+  pseudocount.use = 1,
+  mean.fxn = NULL,
+  fc.name = NULL,
+  base = 2,
+  return.thresh = 1e-2,
+  densify = FALSE,
+  cores = 2,
+  ...
+) {
+  MapVals <- function(vec, from, to) {
+    vec2 <- setNames(object = to, nm = from)[as.character(x = vec)]
+    vec2[is.na(x = vec2)] <- vec[is.na(x = vec2)]
+    return(unname(obj = vec2))
+  }
+  if ((test.use == "roc") && (return.thresh == 1e-2)) {
+    return.thresh <- 0.7
+  }
+  if (is.null(x = node)) {
+    idents.all <- sort(x = unique(x = Idents(object = object)))
+  } else {
+    if (!PackageCheck('ape', error = FALSE)) {
+      stop(cluster.ape, call. = FALSE)
+    }
+    tree <- Tool(object = object, slot = 'BuildClusterTree')
+    if (is.null(x = tree)) {
+      stop("Please run 'BuildClusterTree' before finding markers on nodes")
+    }
+    descendants <- DFT(tree = tree, node = node, include.children = TRUE)
+    all.children <- sort(x = tree$edge[, 2][!tree$edge[, 2] %in% tree$edge[, 1]])
+    descendants <- MapVals(
+      vec = descendants,
+      from = all.children,
+      to = tree$tip.label
+    )
+    drop.children <- setdiff(x = tree$tip.label, y = descendants)
+    keep.children <- setdiff(x = tree$tip.label, y = drop.children)
+    orig.nodes <- c(
+      node,
+      as.numeric(x = setdiff(x = descendants, y = keep.children))
+    )
+    tree <- ape::drop.tip(phy = tree, tip = drop.children)
+    new.nodes <- unique(x = tree$edge[, 1, drop = TRUE])
+    idents.all <- (tree$Nnode + 2):max(tree$edge)
+  }
+
+  if (!require(doParallel)) {
+        stop('doParallel library not loaded. Please exeucte library("doParallel").')
+  } else {
+    cluster <- makeCluster(cores, # number of cores to use
+                                type = "PSOCK") # type of cluster
+    registerDoParallel(cluster)
+    result <- foreach(i = seq_along(idents.all),
+        .combine="comb", .multicombine=TRUE,
+        .packages = c("Seurat")) %dopar% {
+      if (verbose) {
+        message("Calculating cluster ", idents.all[i])
+      }
+      message <- NULL
+      genes_de <- tryCatch(
+      expr = {
+        FindMarkers(
+          object = object,
+          assay = assay,
+          ident.1 = if (is.null(x = node)) {
+            idents.all[i]
+          } else {
+            tree
+          },
+          ident.2 = if (is.null(x = node)) {
+            NULL
+          } else {
+            idents.all[i]
+          },
+          features = features,
+          logfc.threshold = logfc.threshold,
+          test.use = test.use,
+          slot = slot,
+          min.pct = min.pct,
+          min.diff.pct = min.diff.pct,
+          verbose = verbose,
+          only.pos = only.pos,
+          max.cells.per.ident = max.cells.per.ident,
+          random.seed = random.seed,
+          latent.vars = latent.vars,
+          min.cells.feature = min.cells.feature,
+          min.cells.group = min.cells.group,
+          pseudocount.use = pseudocount.use,
+          mean.fxn = mean.fxn,
+          fc.name = fc.name,
+          base = base,
+          densify = densify,
+          ...
+        )
+      },
+      error = function(cond) {
+        return(cond$message)
+      }
+    )
+    if (is.character(x = genes_de)) {
+      message <- genes_de
+      genes_de <- NULL
+    }
+
+    list(genes_de, message)
+  }
+
+  stopCluster(cluster)
+
+  genes.de <- result[[1]]
+  messages <- result[[2]]
+
+  gde.all <- data.frame()
+  for (i in seq_along(idents.all)) {
+    if (is.null(x = unlist(x = genes.de[i]))) {
+      next
+    }
+    gde <- genes.de[[i]]
+    if (nrow(x = gde) > 0) {
+      if (test.use == "roc") {
+        gde <- subset(
+          x = gde,
+          subset = (myAUC > return.thresh | myAUC < (1 - return.thresh))
+        )
+      } else if (is.null(x = node) || test.use %in% c('bimod', 't')) {
+        gde <- gde[order(gde$p_val, -gde[, 2]), ]
+        gde <- subset(x = gde, subset = p_val < return.thresh)
+      }
+      if (nrow(x = gde) > 0) {
+        gde$cluster <- idents.all[i]
+        gde$gene <- rownames(x = gde)
+      }
+      if (nrow(x = gde) > 0) {
+        gde.all <- rbind(gde.all, gde)
+      }
+    }
+  }
+  if ((only.pos) && nrow(x = gde.all) > 0) {
+    return(subset(x = gde.all, subset = gde.all[, 2] > 0))
+  }
+  rownames(x = gde.all) <- make.unique(names = as.character(x = gde.all$gene))
+  if (nrow(x = gde.all) == 0) {
+    warning("No DE genes identified", call. = FALSE, immediate. = TRUE)
+  }
+  if (length(x = messages) > 0) {
+    warning("The following tests were not performed: ", call. = FALSE, immediate. = TRUE)
+    for (i in seq_along(messages)) {
+      if (!is.null(x = messages[[i]])) {
+        warning("When testing ", idents.all[i], " versus all:\n\t", messages[[i]], call. = FALSE, immediate. = TRUE)
+      }
+    }
+  }
+  if (!is.null(x = node)) {
+    gde.all$cluster <- MapVals(
+      vec = gde.all$cluster,
+      from = new.nodes,
+      to = orig.nodes
+    )
+  }
+  return(gde.all)
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #' Gene expression markers for all identity classes
 #'
 #' Finds markers (differentially expressed genes) for each of the identity classes in a dataset
