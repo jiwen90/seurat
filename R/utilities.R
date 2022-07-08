@@ -2700,14 +2700,13 @@ AddModuleScoreParallel <- function(
   ...
 ) {
     if (!require(doParallel)) {
-        stop('doParallel library not loaded. Please exeucte library("doParallel").')
+        stop('doParallel package not found. Please install before continuing.')
     } else {
         cluster <- makeCluster(cores, # number of cores to use
                                 type = "PSOCK") # type of cluster
         registerDoParallel(cluster)
         result <- foreach(features=features, name=names, .combine=cbind, .export="GetModuleScore", .packages = c("Seurat", "ggplot2")) %dopar% {
-            print(name)
-            GetModuleScore(object, features, pool, nbin, ctrl, k, assay, name, seed, search)
+          GetModuleScore(object, features, pool, nbin, ctrl, k, assay, name, seed, search)
         }
 
         stopCluster(cluster)
