@@ -113,6 +113,7 @@ FindAllMarkersParallel <- function(
     }
     result <- foreach(i = seq_along(idents.all),
         .combine="comb", .multicombine=TRUE,
+        .init=list(list(), list()),
         .packages = c("Seurat")) %dopar% {
       if (verbose) {
         message("Calculating cluster ", idents.all[i])
