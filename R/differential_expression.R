@@ -107,6 +107,10 @@ FindAllMarkersParallel <- function(
     cluster <- makeCluster(cores, # number of cores to use
                                 type = "PSOCK") # type of cluster
     registerDoParallel(cluster)
+    comb <- function(x, ...) {
+      lapply(seq_along(x),
+        function(i) c(x[[i]], lapply(list(...), function(y) y[[i]])))
+    }
     result <- foreach(i = seq_along(idents.all),
         .combine="comb", .multicombine=TRUE,
         .packages = c("Seurat")) %dopar% {
