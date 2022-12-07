@@ -2702,14 +2702,18 @@ AddModuleScoreParallel <- function(
     if (!require(doParallel)) {
         stop('doParallel package not found. Please install before continuing.')
     } else {
+        assay.old <- DefaultAssay(object = object)
+        assay <- assay %||% assay.old
+        n <- DietSeurat(object, counts=F, data=T, assays=assay)
         cluster <- makeCluster(cores, # number of cores to use
                                 type = "PSOCK") # type of cluster
         registerDoParallel(cluster)
         result <- foreach(features=features, name=names, .combine=cbind, .export="GetModuleScore", .packages = c("Seurat", "ggplot2")) %dopar% {
-          GetModuleScore(object, features, pool, nbin, ctrl, k, assay, name, seed, search)
+          GetModuleScore(n, features, pool, nbin, ctrl, k, assay, name, seed, search)
         }
-
         stopCluster(cluster)
+        rm(n)
+        gc()
         object[[colnames(x = result)]] <- result
         return (object)
     }

@@ -107,6 +107,14 @@ FindAllMarkersParallel <- function(
     cluster <- makeCluster(cores, # number of cores to use
                                 type = "PSOCK") # type of cluster
     registerDoParallel(cluster)
+    assay.old <- DefaultAssay(object = object)
+    assay <- assay %||% assay.old
+    n <- DietSeurat(object,
+      counts=(slot == 'counts'),
+      data=(slot == 'data'),
+      scale.data=(slot == 'scale.data'),
+      assays=assay
+    )
     comb <- function(x, ...) {
       lapply(seq_along(x),
         function(i) c(x[[i]], lapply(list(...), function(y) y[[i]])))
@@ -122,7 +130,7 @@ FindAllMarkersParallel <- function(
       genes_de <- tryCatch(
         expr = {
           FindMarkers(
-            object = object,
+            object = n,
             assay = assay,
             ident.1 = if (is.null(x = node)) {
               idents.all[i]
@@ -168,7 +176,8 @@ FindAllMarkersParallel <- function(
     }
 
     stopCluster(cluster)
-  
+    rm(n)
+    gc()
   }
 
   genes.de <- result[[1]]
