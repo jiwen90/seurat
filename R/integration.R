@@ -3600,6 +3600,40 @@ FindAnchorPairs <- function(
   return(object)
 }
 
+bigmatrix <- function(
+  sparseMat,
+  n_slices_init=1,
+  verbose=T
+  ) {
+
+  n_slices <- n_slices_init-1
+  while (TRUE) {
+    list_densemat = list()
+    n_slices = n_slices+1
+    if (verbose) message(paste0("n_slices=",n_slices))
+    idx_to = 0
+    for (slice in 1:n_slices) {
+      if (verbose) message(paste0("converting slice ",slice,"/",n_slices))
+      idx_from <- idx_to+1
+      idx_to <- if (slice<n_slices) as.integer(ncol(sparseMat)*slice/n_slices) else ncol(sparseMat)
+      if (verbose) message(paste0("columns ", idx_from,":", idx_to))
+      densemat_sub = try(
+        expr = {
+          as.matrix(sparseMat[,idx_from:idx_to])
+        }, silent = if (verbose) FALSE else TRUE)
+      if ("try-error" %in% class(densemat_sub)) {
+        break # exit to while loop
+      } else {
+        list_densemat[[slice]] = densemat_sub
+      }
+    }
+    if (length(list_densemat)==n_slices) break # exit while loop
+  }
+  if (verbose) message("cbind dense submatrices")
+  densemat <- Reduce(f=cbind, x=list_densemat)
+  return(densemat)
+}
+
 FindIntegrationMatrix <- function(
   object,
   assay = NULL,
@@ -3636,6 +3670,14 @@ FindIntegrationMatrix <- function(
   anchors2 <- nn.cells2[anchors[, "cell2"]]
   data.use1 <- data.use1[anchors1, ]
   data.use2 <- data.use2[anchors2, ]
+
+  gc()
+
+  data.use1 <- bigmatrix(data.use1)
+  data.use2 <- bigmatrix(data.use2)
+
+  gc()
+
   integration.matrix <- data.use2 - data.use1
   object <- SetIntegrationData(
     object = object,
