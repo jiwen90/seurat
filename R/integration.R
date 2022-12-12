@@ -593,7 +593,7 @@ FindIntegrationAnchorsParallel <- function(
                             assay, anchor.features, reduction, 
                             dims, k.anchor, k.filter, k.score, 
                             max.features, nn.method, n.trees, eps,
-                            internal.neighbors, 
+                            internal.neighbors, l2.norm,
                             offsets, verbose, scale) {
     i <- combinations[row, 1]
     j <- combinations[row, 2]
@@ -687,13 +687,13 @@ FindIntegrationAnchorsParallel <- function(
                           .export=c("anchoring.fxn", "combinations", "object.list", 
                           "assay", "anchor.features", "reduction", "dims", "k.anchor", 
                           "k.filter", "k.score", "max.features", "nn.method", "n.trees", 
-                          "eps", "internal.neighbors", "offsets", "verbose", "scale"),
+                          "eps", "internal.neighbors", "l2.norm", "offsets", "verbose", "scale"),
                           .packages = c("Seurat")) %dopar% 
                             anchoring.fxn(i, row, combinations, object.list, 
                             assay, anchor.features, reduction, 
                             dims, k.anchor, k.filter, k.score, 
                             max.features, nn.method, n.trees, eps,
-                            internal.neighbors, 
+                            internal.neighbors, l2.norm,
                             offsets, verbose, scale)
       
         stopCluster(cluster)
