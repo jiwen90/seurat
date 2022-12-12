@@ -684,12 +684,9 @@ FindIntegrationAnchorsParallel <- function(
         registerDoParallel(cluster)
       
         all.anchors <- foreach(i=seq_along(combinations),
-                          .export=c("anchoring.fxn", "combinations", "object.list", 
-                          "assay", "anchor.features", "reduction", "dims", "k.anchor", 
-                          "k.filter", "k.score", "max.features", "nn.method", "n.trees", 
-                          "eps", "internal.neighbors", "l2.norm", "offsets", "verbose", "scale"),
+                          .export=c("anchoring.fxn"),
                           .packages = c("Seurat")) %dopar% 
-                            anchoring.fxn(i, row, combinations, object.list, 
+                            anchoring.fxn(i, combinations, object.list, 
                             assay, anchor.features, reduction, 
                             dims, k.anchor, k.filter, k.score, 
                             max.features, nn.method, n.trees, eps,
