@@ -3963,7 +3963,7 @@ bigmatrix <- function(
     if (length(list_densemat)==n_slices) break # exit while loop
   }
   if (verbose) message("cbind dense submatrices")
-  if (nslices==1) return(list_densemat[[1]])
+  if (n_slices==1) return(list_densemat[[1]])
   else return(Reduce(f=cbind, x=list_densemat))
 }
 
