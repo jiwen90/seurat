@@ -693,7 +693,7 @@ FindIntegrationAnchorsParallel <- function(
       
         stopCluster(cluster)
         gc()
-        return(all.anchors)
+        all.anchors
       },
       error = function(cond) {
         stopCluster(cluster)
