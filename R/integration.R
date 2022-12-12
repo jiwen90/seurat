@@ -3935,6 +3935,10 @@ bigmatrix <- function(
   verbose=T
   ) {
 
+  if (!inherits(x = sparseMat, what = "sparseMatrix")) {
+    return(sparseMat)
+  }
+
   n_slices <- n_slices_init-1
   while (TRUE) {
     list_densemat = list()
@@ -3959,8 +3963,8 @@ bigmatrix <- function(
     if (length(list_densemat)==n_slices) break # exit while loop
   }
   if (verbose) message("cbind dense submatrices")
-  densemat <- Reduce(f=cbind, x=list_densemat)
-  return(densemat)
+  if (nslices==1) return(list_densemat[[1]])
+  else return(Reduce(f=cbind, x=list_densemat))
 }
 
 FindIntegrationMatrix <- function(
