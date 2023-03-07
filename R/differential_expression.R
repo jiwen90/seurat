@@ -107,6 +107,7 @@ FindAllMarkersParallel <- function(
     cluster <- makeCluster(cores, # number of cores to use
                                 type = "PSOCK") # type of cluster
     registerDoParallel(cluster)
+    on.exit(stopCluster(cluster))
     assay.old <- DefaultAssay(object = object)
     assay <- assay %||% assay.old
     n <- DietSeurat(object,

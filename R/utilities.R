@@ -2708,6 +2708,7 @@ AddModuleScoreParallel <- function(
         cluster <- makeCluster(cores, # number of cores to use
                                 type = "PSOCK") # type of cluster
         registerDoParallel(cluster)
+        on.exit(stopCluster(cluster))
         result <- foreach(features=features, name=names, .combine=cbind, .export="GetModuleScore", .packages = c("Seurat", "ggplot2")) %dopar% {
           GetModuleScore(n, features, pool, nbin, ctrl, k, assay, name, seed, search)
         }
