@@ -227,6 +227,7 @@ DoHeatmap <- function(
   slot = 'scale.data',
   assay = NULL,
   label = TRUE,
+  repel = FALSE,
   size = 5.5,
   hjust = 0,
   angle = 45,
@@ -379,15 +380,27 @@ DoHeatmap <- function(
           }
         })
         label.x.pos <- data.frame(group = names(x = label.x.pos), label.x.pos)
-        plot <- plot + geom_text(
-          stat = "identity",
-          data = label.x.pos,
-          aes_string(label = 'group', x = 'label.x.pos'),
-          y = y.max + y.max * 0.03 * 0.5,
-          angle = angle,
-          hjust = hjust,
-          size = size
-        )
+        if (repel) {
+          plot <- plot + geom_text_repel(
+            stat = "identity",
+            data = label.x.pos,
+            aes_string(label = 'group', x = 'label.x.pos'),
+            y = y.max + y.max * 0.03 * 0.5,
+            angle = angle,
+            hjust = hjust,
+            size = size
+          )
+        } else {
+          plot <- plot + geom_text(
+            stat = "identity",
+            data = label.x.pos,
+            aes_string(label = 'group', x = 'label.x.pos'),
+            y = y.max + y.max * 0.03 * 0.5,
+            angle = angle,
+            hjust = hjust,
+            size = size
+          )
+        }
         plot <- suppressMessages(plot + coord_cartesian(
           ylim = c(0, y.max + y.max * 0.002 * max(nchar(x = levels(x = group.use))) * size),
           clip = 'off')
