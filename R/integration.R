@@ -683,8 +683,7 @@ FindIntegrationAnchorsParallel <- function(
                                     type = "PSOCK") # type of cluster
         registerDoParallel(cluster)
         on.exit(stopCluster(cluster))
-      
-        all.anchors <- foreach(i=seq_along(combinations),
+        all.anchors <- foreach(i=seq_along(nrow(combinations)),
                           .packages = c("Seurat")) %dopar% 
                             anchoring.fxn(i, combinations, object.list, 
                             assay, anchor.features, reduction, 
@@ -695,7 +694,7 @@ FindIntegrationAnchorsParallel <- function(
       
         stopCluster(cluster)
         gc()
-        return(all.anchors)
+        all.anchors
       },
       error = function(cond) {
         stopCluster(cluster)
