@@ -176,7 +176,6 @@ FindAllMarkersParallel <- function(
       list(genes_de, message)
     }
 
-    stopCluster(cluster)
     rm(n)
     gc()
   }

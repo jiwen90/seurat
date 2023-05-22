@@ -2712,7 +2712,6 @@ AddModuleScoreParallel <- function(
         result <- foreach(features=features, name=names, .combine=cbind, .export="GetModuleScore", .packages = c("Seurat", "ggplot2")) %dopar% {
           GetModuleScore(n, features, pool, nbin, ctrl, k, assay, name, seed, search)
         }
-        stopCluster(cluster)
         rm(n)
         gc()
         object[[colnames(x = result)]] <- result
